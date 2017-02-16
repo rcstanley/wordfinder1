@@ -8,6 +8,7 @@ local scene = composer.newScene()
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
 local backgroundImageURL = "graphics/background.png"
+local selectPicImageURL = "graphics/clicktoselectpic.png"
 
 
 
@@ -21,9 +22,21 @@ function scene:create( event )
 	local sceneGroup = self.view
 	-- Code here runs when the scene is first created but has not yet appeared on screen
 	local buttonY = display.actualContentHeight - 80
+	--load the background image
 	local background = display.newImageRect( sceneGroup, backgroundImageURL, display.actualContentWidth, display.actualContentHeight )
 	background.x = display.contentCenterX
 	background.y = display.contentCenterY
+	
+	--load the "click to select image graphic"
+	local clicktoselectpic = display.newImageRect( sceneGroup, selectPicImageURL,450, 600 )
+	--scale the image to fit 1/3 of the screen
+	local s = (display.contentHeight/1.5) / clicktoselectpic.height
+	clicktoselectpic:scale(s,s)
+	clicktoselectpic.anchorX=0
+	clicktoselectpic.anchorY=0
+	clicktoselectpic.x = 0--clicktoselectpic.contentHeight/2
+	clicktoselectpic.y = 10--clicktoselectpic.contentWidth/2
+	composer.setVariable("gameImage",clicktoselectpic)
 	--local title = display.newImageRect( sceneGroup, "title.png", 500, 80 )
 	--title.x = display.contentCenterX
 	--title.y = 200
@@ -49,7 +62,7 @@ function scene:create( event )
  
 	if media.hasSource( media.PhotoLibrary ) then
 	   media.selectPhoto( { mediaSource = media.PhotoLibrary, listener = onPhotoComplete } )
-	   composer.setVariable("gameImage",background)
+	   
 	else
 	   native.showAlert( "Corona", "This device does not have a photo library.", { "OK" } )
 	   composer.setVariable("gameImage",background)
