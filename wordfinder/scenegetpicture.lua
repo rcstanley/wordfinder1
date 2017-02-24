@@ -9,7 +9,56 @@ local scene = composer.newScene()
 -- -----------------------------------------------------------------------------------
 local backgroundImageURL = "graphics/background.png"
 local selectPicImageURL = "graphics/clicktoselectpic.png"
+local gameSnapshotFilename = "game_image.png"
+local savedLetters = "saved_letters"
+local alertTitle = "Alert"
+local alertMessageNoContent = "Please Type at least 2 letters"
+local fontSize1 = 30
+local lettersTextBox
 
+--open the photo library and let the user pick a photo
+-- save the photo to the 
+local function getGameScreenShot()
+	local function onPhotoComplete( event )
+	   if ( event.completed ) then
+	      local photo = event.target
+	      local s = display.contentHeight / photo.height
+	      photo:scale( s,s )
+	      composer.setVariable("gameImage", photo)
+	      display.save(photo,gameSnapshotFilename)
+	      print( "photo w,h = " .. photo.width .. "," .. photo.height )
+	   end
+	end
+ 
+	if media.hasSource( media.PhotoLibrary ) then
+	   media.selectPhoto( { mediaSource = media.PhotoLibrary, listener = onPhotoComplete } )
+	   
+	else
+	   native.showAlert( "Corona", "This device does not have a photo library.", { "OK" } )
+	   composer.setVariable("gameImage",background)
+	end
+end
+
+--[[
+get the text and picture and go to the next screen
+--]]
+local function continueToNextScene()
+	local letters = lettersTextBox.text:rep(1)
+	--make sure there are letters
+	letters = letters:gsub("%A","")
+	if (letters~=nil and letters:len() > 1) then
+		letters = letters:lower()
+		native.showAlert(alertTitle,letters)
+		composer.setVariable(savedLetters, letters)
+		composer.gotoScene( "scenefindWords" )
+	else -- nothing was typed in the box
+		native.showAlert(alertTitle,alertMessageNoContent)
+	end
+
+	--validate letters
+
+
+end
 
 
 -- -----------------------------------------------------------------------------------
@@ -26,7 +75,11 @@ function scene:create( event )
 	local background = display.newImageRect( sceneGroup, backgroundImageURL, display.actualContentWidth, display.actualContentHeight )
 	background.x = display.contentCenterX
 	background.y = display.contentCenterY
-	
+	--listener to hide keyboard if background is tapped
+	local function hideKeyboard()
+		 native.setKeyboardFocus(nil)
+	end
+	background:addEventListener("tap",hideKeyboard)
 	--load the "click to select image graphic"
 	local clicktoselectpic = display.newImageRect( sceneGroup, selectPicImageURL,450, 600 )
 	--scale the image to fit 1/3 of the screen
@@ -37,40 +90,35 @@ function scene:create( event )
 	clicktoselectpic.x = 0--clicktoselectpic.contentHeight/2
 	clicktoselectpic.y = 10--clicktoselectpic.contentWidth/2
 	composer.setVariable("gameImage",clicktoselectpic)
-	--local title = display.newImageRect( sceneGroup, "title.png", 500, 80 )
-	--title.x = display.contentCenterX
-	--title.y = 200
-	--menu chocies
+
+	--create a lable and a text box
+	local letterTitle = display.newText( sceneGroup, "Letters:", display.contentCenterX, 75, native.systemFont, fontSize1-10 )
+	letterTitle.anchorX=0
+	 lettersTextBox = native.newTextField( display.contentCenterX+letterTitle.contentWidth, 75, 160, 40 )
+	sceneGroup:insert( lettersTextBox )
+	lettersTextBox.anchorX=0
+	--if there are letters that have been saved before, put them in the text box
+	local savedText = composer.getVariable(savedLetters)
+	if(savedText~=nil and savedText:len()>0) then
+		lettersTextBox.text = savedText
+	end
+	--value1:addEventListener( "userInput", textListener )
+	--value1.inputType = "number"
+
 --create the selct button
-	local selectButton = display.newText( sceneGroup, "Select", display.contentCenterX, buttonY, native.systemFont, 44 )
+	local selectButton = display.newText( sceneGroup, "Select Scene", display.contentCenterX, buttonY, native.systemFont, fontSize1 )
 	selectButton:setFillColor( 1, 1, 1 )
+	selectButton.anchorX=0
 	selectButton.x = display.contentCenterX - selectButton.contentWidth
 	 --create the continue button
-	local continueButton = display.newText( sceneGroup, "Continue", display.contentCenterX, buttonY, native.systemFont, 44 )
+	local continueButton = display.newText( sceneGroup, "Continue", display.contentCenterX, buttonY, native.systemFont, fontSize1 )
+	continueButton.anchorX=0
 	continueButton:setFillColor( 1, 1, 1 )
-	continueButton.x = display.contentCenterX + selectButton.contentWidth
-	--listener for selecting screen shot
-	local function onPhotoComplete( event )
-	   if ( event.completed ) then
-	      local photo = event.target
-	      local s = display.contentHeight / photo.height
-	      photo:scale( s,s )
-	      composer.setVariable("gameImage", photo)
-	      print( "photo w,h = " .. photo.width .. "," .. photo.height )
-	   end
-	end
- 
-	if media.hasSource( media.PhotoLibrary ) then
-	   media.selectPhoto( { mediaSource = media.PhotoLibrary, listener = onPhotoComplete } )
-	   
-	else
-	   native.showAlert( "Corona", "This device does not have a photo library.", { "OK" } )
-	   composer.setVariable("gameImage",background)
-	end
+	continueButton.x = display.contentCenterX + continueButton.contentWidth
 	
 	--add event listeners
-	--playButton:addEventListener( "tap", gotoGame )
-	--continueButton:addEventListener( "tap", gotoHighScores )
+	selectButton:addEventListener( "tap", getGameScreenShot )
+	continueButton:addEventListener( "tap", continueToNextScene )
 
 end
 
