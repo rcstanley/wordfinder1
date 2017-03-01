@@ -10,11 +10,13 @@ local scene = composer.newScene()
 local backgroundImageURL = "graphics/background.png"
 local selectPicImageURL = "graphics/clicktoselectpic.png"
 local gameSnapshotFilename = "game_image.png"
-local savedLetters = "saved_letters"
+local savedLettersKey = "saved_letters"
+local gameImageKey = "game_image"
 local alertTitle = "Alert"
 local alertMessageNoContent = "Please Type at least 2 letters"
 local fontSize1 = 30
 local lettersTextBox
+local clicktoselectpic 
 
 --open the photo library and let the user pick a photo
 -- save the photo to the 
@@ -24,7 +26,7 @@ local function getGameScreenShot()
 	      local photo = event.target
 	      local s = display.contentHeight / photo.height
 	      photo:scale( s,s )
-	      composer.setVariable("gameImage", photo)
+	      composer.gameImageKey = photo
 	      display.save(photo,gameSnapshotFilename)
 	      print( "photo w,h = " .. photo.width .. "," .. photo.height )
 	   end
@@ -35,7 +37,7 @@ local function getGameScreenShot()
 	   
 	else
 	   native.showAlert( "Corona", "This device does not have a photo library.", { "OK" } )
-	   composer.setVariable("gameImage",background)
+	   composer.gameImageKey = clicktoselectpic
 	end
 end
 
@@ -48,8 +50,8 @@ local function continueToNextScene()
 	letters = letters:gsub("%A","")
 	if (letters~=nil and letters:len() > 1) then
 		letters = letters:lower()
-		native.showAlert(alertTitle,letters)
-		composer.setVariable(savedLetters, letters)
+		--native.showAlert(alertTitle,letters)
+		composer.savedLettersKey =  letters
 		composer.gotoScene( "scenefindWords" )
 	else -- nothing was typed in the box
 		native.showAlert(alertTitle,alertMessageNoContent)
@@ -81,7 +83,11 @@ function scene:create( event )
 	end
 	background:addEventListener("tap",hideKeyboard)
 	--load the "click to select image graphic"
-	local clicktoselectpic = display.newImageRect( sceneGroup, selectPicImageURL,450, 600 )
+	clicktoselectpic = composer.gameImageKey
+	if(clicktoselectpic==nil) then
+		clicktoselectpic = display.newImageRect( selectPicImageURL,450, 600 )
+	end
+	sceneGroup:insert(clicktoselectpic,0,10)
 	--scale the image to fit 1/3 of the screen
 	local s = (display.contentHeight/1.5) / clicktoselectpic.height
 	clicktoselectpic:scale(s,s)
@@ -89,7 +95,8 @@ function scene:create( event )
 	clicktoselectpic.anchorY=0
 	clicktoselectpic.x = 0--clicktoselectpic.contentHeight/2
 	clicktoselectpic.y = 10--clicktoselectpic.contentWidth/2
-	composer.setVariable("gameImage",clicktoselectpic)
+	
+	composer.gameImageKey = clicktoselectpic
 
 	--create a lable and a text box
 	local letterTitle = display.newText( sceneGroup, "Letters:", display.contentCenterX, 75, native.systemFont, fontSize1-10 )
@@ -98,13 +105,15 @@ function scene:create( event )
 	sceneGroup:insert( lettersTextBox )
 	lettersTextBox.anchorX=0
 	--if there are letters that have been saved before, put them in the text box
-	local savedText = composer.getVariable(savedLetters)
+	local savedText = composer.savedLettersKey
 	if(savedText~=nil and savedText:len()>0) then
 		lettersTextBox.text = savedText
 	end
 	--value1:addEventListener( "userInput", textListener )
 	--value1.inputType = "number"
-
+	local deleteTextCircle = display.newCircle(sceneGroup,display.contentCenterX+letterTitle.contentWidth+160+20,75, 15)
+	deleteTextCircle:setFillColor(.5,0,0)
+	display.newText(sceneGroup,"X", display.contentCenterX+letterTitle.contentWidth+160+20,75,native.systemFont,fontSize1)
 --create the selct button
 	local selectButton = display.newText( sceneGroup, "Select Scene", display.contentCenterX, buttonY, native.systemFont, fontSize1 )
 	selectButton:setFillColor( 1, 1, 1 )
@@ -119,6 +128,18 @@ function scene:create( event )
 	--add event listeners
 	selectButton:addEventListener( "tap", getGameScreenShot )
 	continueButton:addEventListener( "tap", continueToNextScene )
+	lettersTextBox:addEventListener("submitted",continueToNextScene)
+	local function deleteText()
+		lettersTextBox.text=""
+		composer.savedLettersKey =  ""
+	end
+	deleteTextCircle:addEventListener("tap", deleteText)
+	if clicktoselectpic~=nill then
+		print(clicktoselectpic)
+		clicktoselectpic:addEventListener("tap",getGameScreenShot)
+	else
+		print("clicktoselectpic is nill")
+	end
 
 end
 
@@ -150,6 +171,9 @@ function scene:hide( event )
 
 	elseif ( phase == "did" ) then
 		-- Code here runs immediately after the scene goes entirely off screen
+		if lettersTextBox~=nil then
+		lettersTextBox:removeSelf()
+	end
 
 	end
 end
@@ -159,6 +183,7 @@ end
 function scene:destroy( event )
 
 	local sceneGroup = self.view
+
 	-- Code here runs prior to the removal of scene's view
 
 end
