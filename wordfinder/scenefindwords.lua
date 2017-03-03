@@ -18,8 +18,10 @@ local numLetters
 local useLowercase = true
 local tileSize = 40
 local fontSize1 = 40
+
+local words = {}
 --create a table representing each letter the user has typed in
-local function createLetterTable(sceneGroup, startX, startY)
+local function createLetterTable(sceneGroup)
 	listOfLetters = {}
 	letters = (composer.savedLettersKey):rep(1)
 	local letter
@@ -28,6 +30,7 @@ local function createLetterTable(sceneGroup, startX, startY)
 	local tileText
 	local tileRec
 	numLetters = letters:len()
+	--sceneGroup.anchorX=0
 	--local sceneGroup = self.view
 	--for each letter the user submitted, create an image
 	for i=1,numLetters do
@@ -36,9 +39,9 @@ local function createLetterTable(sceneGroup, startX, startY)
 		letterInfo.letter=letter
 		letterInfo.place = i
 		displayGroup = display.newGroup()
-		displayGroup.x = startX+tileSize*i+2
-		displayGroup.y = startY
-		displayGroup.anchorX = 0
+		displayGroup.x = (tileSize+10) * i
+		displayGroup.y = 0
+		--displayGroup.anchorX = 0
 		--display.newRect( displayGroup,0, 0, tileSize, tileSize )
 		tileRec=display.newImageRect( displayGroup, tileImageURL, tileSize, tileSize )
 		tileRec.anchorX = 0
@@ -46,8 +49,8 @@ local function createLetterTable(sceneGroup, startX, startY)
 		tileRec.y=0
 		tileText = display.newEmbossedText(displayGroup,letter, tileSize,tileSize, native.systemFont,fontSize1)
 		tileText:setFillColor(0,0,0)
-		tileText.anchorX = 0
-		tileText.x=0
+		tileText.anchorX = .5
+		tileText.x=tileSize/2
 		tileText.y=0
 		letterInfo.tile = displayGroup
 		sceneGroup:insert(displayGroup)
@@ -57,6 +60,30 @@ local function createLetterTable(sceneGroup, startX, startY)
 		--create and add a tile to the tilebar
 	end
 	
+end
+
+--load the list of valid words from the file
+local function loadWords()
+	-- Path for the file to read
+	local path = system.pathForFile( "wordlist.txt", system.ResourceDirectory )
+ 
+	-- Open the file handle
+	local file, errorString = io.open( path, "r" )
+ 
+	if not file then
+	    -- Error occurred; output the cause
+	    print( "File error: " .. errorString )
+	else
+	    -- Output lines
+	    for line in file:lines() do
+	    	line = line:lower();
+	        words[line]=true
+	    end
+	    -- Close the file handle
+	    io.close( file )
+	end
+	 
+	file = nil
 end
 
 --local function place
@@ -79,10 +106,15 @@ function scene:create( event )
 	local screenshot = composer.gameImageKey
 	sceneGroup:insert(screenshot)
 	--draw the background for the tilebar
-	local rec = display.newRect(sceneGroup,display.contentCenterX+10,display.actualContentHeight-60,display.actualContentWidth-50,50)
+	local displayGroup = display.newGroup()
+	local rec = display.newRect(displayGroup,0,0,display.actualContentWidth-50,50)--display.contentCenterX+10,display.actualContentHeight-60,display.actualContentWidth-50,50)
+	sceneGroup:insert(displayGroup)
+	displayGroup.x=display.contentCenterX+10
+	displayGroup.y=display.actualContentHeight-60
 	--get the string of letters the user entered
-	createLetterTable(sceneGroup,rec.x,rec.y)
+	createLetterTable(displayGroup)
 	--load word dictionary
+	loadWords()
 end
 
 
