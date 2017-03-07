@@ -28,6 +28,9 @@ local function placeTile(tileInfo)
 	tileInfo.tile.y=0
 end
 
+
+
+
 --create a table representing each letter the user has typed in
 local function createLetterTable(sceneGroup)
 	listOfLetters = {}
@@ -61,6 +64,36 @@ local function createLetterTable(sceneGroup)
 		tileText.y=0
 		letterInfo.tile = displayGroup
 		placeTile(letterInfo)
+		--listens for tap / drag with a tile
+		-- if a tap then ask if you want it locked
+		-- if a drag then have tile follow the drag
+		-- if a release then insert the tile where it goes
+		 function displayGroup:touch(event)
+			 if event.phase == "began" then
+				self:toFront()
+		        self.markX = self.x    -- store x location of object
+		        self.markY = self.y    -- store y location of object
+		        self.origX = self.x
+		        self.origY = self.y
+				display.getCurrentStage():setFocus( event.target )
+		    elseif event.phase == "moved" then
+			
+		        local x = (event.x - event.xStart) + self.markX
+		        local y = (event.y - event.yStart) + self.markY
+		        
+		        self.x, self.y = x, y    -- move object based on calculations above
+		    elseif event.phase == "ended" then
+		    display.getCurrentStage():setFocus( nil )
+		    -- put the letter where it goes in the new order
+		    elseif event.phase == "cancelled" then
+		    	--put the object back where it started
+		    	self.x,self.y = self.origX,self.origY
+		    	display.getCurrentStage():setFocus( nil )
+		    end
+		    
+		    return true
+		end
+		displayGroup:addEventListener("touch",displayGroup)
 		sceneGroup:insert(displayGroup)
 		letterInfo.locked = false
 		listOfLetters[i] = letterInfo 
@@ -107,6 +140,7 @@ end
 --local function place
 
 
+
 -- -----------------------------------------------------------------------------------
 -- Scene event functions
 -- -----------------------------------------------------------------------------------
@@ -119,7 +153,7 @@ function scene:create( event )
 	--put in the background
 	--load word dictionary
 	loadWords()
-	
+
 	local background = display.newImageRect( sceneGroup, backgroundImageURL, display.actualContentWidth, display.actualContentHeight )
 	background.x = display.contentCenterX
 	background.y = display.contentCenterY
@@ -129,8 +163,6 @@ function scene:create( event )
 	--draw the screenshot image
 	local screenshot = composer.gameImageKey
 	sceneGroup:insert(screenshot)
-
-
 	
 	--draw the background for the tilebar
 	local displayGroup = display.newGroup()
