@@ -20,15 +20,19 @@ local tileSize = 40
 local fontSize1 = 40
 local isAWordCircle
 
+local tileStartTable = {}
 local words = {}
 
 --calculate where each tile/letter should go based on its location in the "word"
 local function placeTile(tileInfo)
-	tileInfo.tile.x= ((tileSize)* (tileInfo.place-1) ) + (10*tileInfo.place)
-	tileInfo.tile.y=0
+	tileInfo.x= ((tileSize)* (tileInfo.wf_place-1) ) + (10*tileInfo.wf_place)
+	tileInfo.y=0
+	return tileInfo.x
 end
 
-
+local function getLocation()
+	return 1
+end
 
 
 --create a table representing each letter the user has typed in
@@ -43,14 +47,16 @@ local function createLetterTable(sceneGroup)
 	numLetters = letters:len()
 	--sceneGroup.anchorX=0
 	--local sceneGroup = self.view
-
+	local leftX 
 	--for each letter the user submitted, create an image of a tile and a letter
 	for i=1,numLetters do
 		letter = string.sub(letters,i,i)
-		local letterInfo={}
-		letterInfo.letter=letter
-		letterInfo.place = i
+		--local letterInfo={}
+		--letterInfo.letter=letter
+		--letterInfo.place = i
 		displayGroup = display.newGroup()
+		displayGroup.wf_letter=letter
+		displayGroup.wf_place=i
 		--calculate tile position
 		
 		tileRec=display.newImageRect( displayGroup, tileImageURL, tileSize, tileSize )
@@ -62,8 +68,10 @@ local function createLetterTable(sceneGroup)
 		tileText.anchorX = .5
 		tileText.x=tileSize/2
 		tileText.y=0
-		letterInfo.tile = displayGroup
-		placeTile(letterInfo)
+		--letterInfo.tile = displayGroup
+		leftX = placeTile(displayGroup)
+		--mark where the left edge of the tile is for placing tiles later
+		tileStartTable[i]=leftX
 		--listens for tap / drag with a tile
 		-- if a tap then ask if you want it locked
 		-- if a drag then have tile follow the drag
@@ -72,18 +80,19 @@ local function createLetterTable(sceneGroup)
 			 if event.phase == "began" then
 				self:toFront()
 		        self.markX = self.x    -- store x location of object
-		        self.markY = self.y    -- store y location of object
+		       	self.markY = self.y    -- store y location of object
 		        self.origX = self.x
 		        self.origY = self.y
 				display.getCurrentStage():setFocus( event.target )
 		    elseif event.phase == "moved" then
 			
 		        local x = (event.x - event.xStart) + self.markX
-		        local y = (event.y - event.yStart) + self.markY
+		       -- local y = (event.y - event.yStart) + self.markY
 		        
 		        self.x, self.y = x, y    -- move object based on calculations above
 		    elseif event.phase == "ended" then
 		    display.getCurrentStage():setFocus( nil )
+		    local loc = getLocation(self.x)
 		    -- put the letter where it goes in the new order
 		    elseif event.phase == "cancelled" then
 		    	--put the object back where it started
@@ -95,8 +104,10 @@ local function createLetterTable(sceneGroup)
 		end
 		displayGroup:addEventListener("touch",displayGroup)
 		sceneGroup:insert(displayGroup)
-		letterInfo.locked = false
-		listOfLetters[i] = letterInfo 
+		--letterInfo.locked = false
+		displayGroup.wf_locked=false
+		--listOfLetters[i] = letterInfo 
+		listOfLetters[i] = displayGroup 
 		--print(letters.." "..i.." "..letter)
 		--create and add a tile to the tilebar
 	end
