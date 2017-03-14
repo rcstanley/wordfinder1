@@ -30,8 +30,47 @@ local function placeTile(tileInfo)
 	return tileInfo.x
 end
 
-local function getLocation()
-	return 1
+local function getLocation1(newX)
+	--local i=1
+	for i=1, numLetters-1 do
+		if newX >= tileStartTable[i] and newX < tileStartTable[i+1] then
+			return i
+		end
+	end
+	
+	return numLetters
+end
+
+--go through the list of tiles, renumber those that have changed 
+-- because movedTile moved
+-- change the x of those that have changed 
+-- newloc>old loc bug
+local function sortTiles(movedTile, oldLoc, newLoc)
+	local mt = movedTile
+	if(newLoc > oldLoc) then
+		for i=oldLoc, newLoc do
+			if i< numLetters then
+				listOfLetters[i]=listOfLetters[i+1]
+				listOfLetters[i].wf_place = i
+				listOfLetters[i].x = tileStartTable[i]
+			end
+		end
+	elseif oldLoc > newLoc then
+		for i=oldLoc, newLoc,-1 do
+			if i>1 then
+				listOfLetters[i]=listOfLetters[i-1]
+				listOfLetters[i].wf_place = i
+				listOfLetters[i].x = tileStartTable[i]
+			end
+		end
+	end
+	listOfLetters[newLoc]=movedTile
+	movedTile.wf_place = newLoc
+	movedTile.x = tileStartTable[newLoc]
+	--local function compare(a,b)
+	--	return a.wf_place < b.wf_place
+	--end
+	--listOfLetters:sort(compare)
 end
 
 
@@ -91,8 +130,12 @@ local function createLetterTable(sceneGroup)
 		        
 		        self.x, self.y = x, y    -- move object based on calculations above
 		    elseif event.phase == "ended" then
-		    display.getCurrentStage():setFocus( nil )
-		    local loc = getLocation(self.x)
+		    	display.getCurrentStage():setFocus( nil )
+		    	local loc = getLocation1(self.x)
+		    	local oldLoc = self.wf_place
+		    	--self.wf_place = loc
+		    	native.showAlert("alert","new location is "..loc.." old loc is "..oldLoc)
+		    	sortTiles(self,oldLoc,loc)
 		    -- put the letter where it goes in the new order
 		    elseif event.phase == "cancelled" then
 		    	--put the object back where it started
