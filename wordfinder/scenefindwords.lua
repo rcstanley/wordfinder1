@@ -19,9 +19,11 @@ local useLowercase = true
 local tileSize = 40
 local fontSize1 = 40
 local isAWordCircle
+local currentWord
 
 local tileStartTable = {}
 local words = {}
+local autoCheck = true
 
 --calculate where each tile/letter should go based on its location in the "word"
 local function placeTile(tileInfo)
@@ -32,6 +34,9 @@ end
 
 local function getLocation1(newX)
 	--local i=1
+	if newX<tileStartTable[1] then 
+		return 1
+	end
 	for i=1, numLetters-1 do
 		if newX >= tileStartTable[i] and newX < tileStartTable[i+1] then
 			return i
@@ -41,6 +46,17 @@ local function getLocation1(newX)
 	return numLetters
 end
 
+-- check and see if the current tile configuration is a word
+-- light up the check as green if it is
+-- set the check to red if it isn't
+local function checkTilesForWords()
+	if words[letters]==true then
+		isAWordCircle:setFillColor(0,.5,0)
+	else 
+		isAWordCircle:setFillColor(.5,0,0)
+	end
+end
+
 --go through the list of tiles, renumber those that have changed 
 -- because movedTile moved
 -- change the x of those that have changed 
@@ -48,7 +64,7 @@ end
 local function sortTiles(movedTile, oldLoc, newLoc)
 	local mt = movedTile
 	if(newLoc > oldLoc) then
-		for i=oldLoc, newLoc do
+		for i=oldLoc, newLoc-1 do
 			if i< numLetters then
 				listOfLetters[i]=listOfLetters[i+1]
 				listOfLetters[i].wf_place = i
@@ -56,7 +72,7 @@ local function sortTiles(movedTile, oldLoc, newLoc)
 			end
 		end
 	elseif oldLoc > newLoc then
-		for i=oldLoc, newLoc,-1 do
+		for i=oldLoc, newLoc-1,-1 do
 			if i>1 then
 				listOfLetters[i]=listOfLetters[i-1]
 				listOfLetters[i].wf_place = i
@@ -71,6 +87,16 @@ local function sortTiles(movedTile, oldLoc, newLoc)
 	--	return a.wf_place < b.wf_place
 	--end
 	--listOfLetters:sort(compare)
+	--the word has changed, fix it
+	local word =""
+	for i=1, numLetters do
+		word = word..listOfLetters[i].wf_letter
+	end
+	currentWord.text = word
+	letters = word
+	if(autoCheck) then
+		checkTilesForWords()
+	end
 end
 
 
@@ -181,16 +207,7 @@ local function loadWords()
 	file = nil
 end
 
--- check and see if the current tile configuration is a word
--- light up the check as green if it is
--- set the check to red if it isn't
-local function checkTilesForWords()
-	if words[letters]==true then
-		isAWordCircle:setFillColor(0,.5,0)
-	else 
-		isAWordCircle:setFillColor(.5,0,0)
-	end
-end
+
 --local function place
 
 
@@ -231,8 +248,8 @@ function scene:create( event )
 	createLetterTable(displayGroup)
 	sceneGroup:insert(displayGroup)
 
-	local letterTitle = display.newText( sceneGroup, letters, display.contentCenterX+15, 75, native.systemFont, fontSize1-10 )
-	letterTitle.anchorX=0
+	currentWord = display.newText( sceneGroup, letters, display.contentCenterX+15, 75, native.systemFont, fontSize1-10 )
+	currentWord.anchorX=0
 	isAWordCircle=display.newCircle(sceneGroup,display.contentCenterX,75, 15)
 	checkTilesForWords()
 	isAWordCircle:addEventListener("tap",checkTilesForWords)
