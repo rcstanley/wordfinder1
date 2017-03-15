@@ -23,7 +23,7 @@ local currentWord
 
 local tileStartTable = {}
 local words = {}
-local autoCheck = true
+local autoCheck = false
 
 --calculate where each tile/letter should go based on its location in the "word"
 local function placeTile(tileInfo)
@@ -34,11 +34,15 @@ end
 
 local function getLocation1(newX)
 	--local i=1
-	if newX<tileStartTable[1] then 
+	local x = newX + tileSize/2
+	if x<tileStartTable[1] then 
 		return 1
 	end
 	for i=1, numLetters-1 do
-		if newX >= tileStartTable[i] and newX < tileStartTable[i+1] then
+		if x >= tileStartTable[i] and x < tileStartTable[i+1] then
+			if x>tileStartTable[i]+tileSize/2 then
+				return i+1
+			end
 			return i
 		end
 	end
@@ -72,22 +76,20 @@ local function sortTiles(movedTile, oldLoc, newLoc)
 			end
 		end
 	elseif oldLoc > newLoc then
-		for i=oldLoc, newLoc-1,-1 do
+		local i = oldLoc
+		while i > newLoc do
 			if i>1 then
 				listOfLetters[i]=listOfLetters[i-1]
 				listOfLetters[i].wf_place = i
 				listOfLetters[i].x = tileStartTable[i]
 			end
+			i = i-1
 		end
 	end
 	listOfLetters[newLoc]=movedTile
 	movedTile.wf_place = newLoc
 	movedTile.x = tileStartTable[newLoc]
-	--local function compare(a,b)
-	--	return a.wf_place < b.wf_place
-	--end
-	--listOfLetters:sort(compare)
-	--the word has changed, fix it
+	--the word has changed, so recreate it
 	local word =""
 	for i=1, numLetters do
 		word = word..listOfLetters[i].wf_letter
@@ -96,6 +98,8 @@ local function sortTiles(movedTile, oldLoc, newLoc)
 	letters = word
 	if(autoCheck) then
 		checkTilesForWords()
+	else --word has changed, so gray out the word
+		isAWordCircle:setFillColor(.2,.2,.2)
 	end
 end
 
@@ -116,14 +120,10 @@ local function createLetterTable(sceneGroup)
 	--for each letter the user submitted, create an image of a tile and a letter
 	for i=1,numLetters do
 		letter = string.sub(letters,i,i)
-		--local letterInfo={}
-		--letterInfo.letter=letter
-		--letterInfo.place = i
 		displayGroup = display.newGroup()
 		displayGroup.wf_letter=letter
 		displayGroup.wf_place=i
 		--calculate tile position
-		
 		tileRec=display.newImageRect( displayGroup, tileImageURL, tileSize, tileSize )
 		tileRec.anchorX = 0
 		tileRec.x=0
@@ -160,7 +160,7 @@ local function createLetterTable(sceneGroup)
 		    	local loc = getLocation1(self.x)
 		    	local oldLoc = self.wf_place
 		    	--self.wf_place = loc
-		    	native.showAlert("alert","new location is "..loc.." old loc is "..oldLoc)
+		    	--native.showAlert("alert","new location is "..loc.." old loc is "..oldLoc)
 		    	sortTiles(self,oldLoc,loc)
 		    -- put the letter where it goes in the new order
 		    elseif event.phase == "cancelled" then
@@ -251,7 +251,11 @@ function scene:create( event )
 	currentWord = display.newText( sceneGroup, letters, display.contentCenterX+15, 75, native.systemFont, fontSize1-10 )
 	currentWord.anchorX=0
 	isAWordCircle=display.newCircle(sceneGroup,display.contentCenterX,75, 15)
-	checkTilesForWords()
+	if(autoCheck) then
+		checkTilesForWords()
+	else
+		isAWordCircle:setFillColor(.2,.2,.2)
+	end
 	isAWordCircle:addEventListener("tap",checkTilesForWords)
 	
 	
