@@ -1,5 +1,6 @@
 
 local composer = require( "composer" )
+composer.recycleOnSceneChange = true
 
 local scene = composer.newScene()
 
@@ -173,6 +174,7 @@ function scene:hide( event )
 		-- Code here runs immediately after the scene goes entirely off screen
 		if lettersTextBox~=nil then
 		lettersTextBox:removeSelf()
+		--composer.removeScene("scenegetpicture")
 	end
 
 	end

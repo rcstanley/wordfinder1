@@ -18,6 +18,7 @@ local numLetters
 local useLowercase = true
 local tileSize = 40
 local fontSize1 = 40
+local fontSize2 = 20
 local isAWordCircle
 local currentWord
 
@@ -257,8 +258,16 @@ function scene:create( event )
 		isAWordCircle:setFillColor(.2,.2,.2)
 	end
 	isAWordCircle:addEventListener("tap",checkTilesForWords)
-	
-	
+	-- make the reset button
+	local resetButton = display.newText( sceneGroup, "Reset", display.contentCenterX, display.contentCenterY, native.systemFont, fontSize2 )
+	resetButton:setFillColor( 1, 1, 1 )
+	resetButton.anchorX=0
+	resetButton.x = display.actualContentWidth - 120
+	resetButton.y = 10 + fontSize2
+	local function getNewTiles()
+		composer.gotoScene( "scenegetpicture" )
+	end
+	resetButton:addEventListener("tap",getNewTiles)
 end
 
 
@@ -298,6 +307,7 @@ function scene:hide( event )
 		-- Code here runs immediately after the scene goes entirely off screen
 
 	end
+	sceneGroup:removeSelf()
 end
 
 
