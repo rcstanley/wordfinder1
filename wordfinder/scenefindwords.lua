@@ -13,6 +13,7 @@ local tileImageURL = "graphics/tile.png"
 local savedLettersKey = "saved_letters"
 local gameImageKey = "game_image"
 local letters
+-- table of display groups w/ a few extra variables added
 local listOfLetters={}
 local numLetters
 local useLowercase = true
@@ -62,6 +63,20 @@ local function checkTilesForWords()
 	end
 end
 
+local function recreateWord()
+	--the word has changed, so recreate it
+	local word =""
+	for i=1, numLetters do
+		word = word..listOfLetters[i].wf_letter
+	end
+	currentWord.text = word
+	letters = word
+	if(autoCheck) then
+		checkTilesForWords()
+	else --word has changed, so gray out the word
+		isAWordCircle:setFillColor(.2,.2,.2)
+	end
+end
 --go through the list of tiles, renumber those that have changed 
 -- because movedTile moved
 -- change the x of those that have changed 
@@ -91,16 +106,9 @@ local function sortTiles(movedTile, oldLoc, newLoc)
 	movedTile.wf_place = newLoc
 	movedTile.x = tileStartTable[newLoc]
 	--the word has changed, so recreate it
-	local word =""
-	for i=1, numLetters do
-		word = word..listOfLetters[i].wf_letter
-	end
-	currentWord.text = word
-	letters = word
-	if(autoCheck) then
+	recreateWord()
+	if autoCheck then
 		checkTilesForWords()
-	else --word has changed, so gray out the word
-		isAWordCircle:setFillColor(.2,.2,.2)
 	end
 end
 
@@ -208,8 +216,48 @@ local function loadWords()
 	file = nil
 end
 
-
---local function place
+--sort the tiles in a random order
+local function randomSort()
+	--get random numbers
+	local letterTable = {}
+	local usedLetters = {}
+	local max = numLetters
+	local newPlace = math.random(max)
+	--check for locked letters and copy them over
+	for i=1,max do
+		if listOfLetters[i].wf_locked~=nil and listOfLetters[i].wf_locked then
+			newPlace = i
+			--mark the random number used
+			usedLetters[newPlace]=true
+			letterTable[newPlace] = listOfLetters[i]
+			letterTable[newPlace].wf_place = newPlace
+			letterTable[newPlace].x = tileStartTable[newPlace]	
+		end
+		
+	end
+	--randomize the rest of the letters
+	for i=1, numLetters do
+		--get a random number that hasn't been used
+		newPlace = math.random(max)
+		if not usedLetters[i]~=nil then
+			while usedLetters[newPlace]~=nil do
+				newPlace = math.random(max)
+			end
+			
+		end
+		--mark the random number used
+		usedLetters[newPlace]=true
+		letterTable[newPlace] = listOfLetters[i]
+		letterTable[newPlace].wf_place = newPlace
+		letterTable[newPlace].x = tileStartTable[newPlace]	
+	
+	end
+	listOfLetters = letterTable
+	recreateWord()
+	if autoCheck then
+		checkTilesForWords()
+	end
+end
 
 
 
@@ -247,8 +295,10 @@ function scene:create( event )
 	rec.anchorX=0
 	--get the string of letters the user entered
 	createLetterTable(displayGroup)
+	
+	local randomButton = display.newRect(displayGroup,rec.contentWidth,0,50,50)
+	randomButton:setFillColor(0,0,.3)
 	sceneGroup:insert(displayGroup)
-
 	currentWord = display.newText( sceneGroup, letters, display.contentCenterX+15, 75, native.systemFont, fontSize1-10 )
 	currentWord.anchorX=0
 	isAWordCircle=display.newCircle(sceneGroup,display.contentCenterX,75, 15)
@@ -268,6 +318,7 @@ function scene:create( event )
 		composer.gotoScene( "scenegetpicture" )
 	end
 	resetButton:addEventListener("tap",getNewTiles)
+	randomButton:addEventListener("tap",randomSort)
 end
 
 
