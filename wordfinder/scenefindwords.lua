@@ -15,7 +15,7 @@ local gameImageKey = "game_image"
 local letters
 -- table of display groups w/ a few extra variables added
 local listOfLetters={}
-local numLetters
+local numLetters = 0
 local useLowercase = true
 local tileSize = 40
 local fontSize1 = 40
@@ -77,12 +77,126 @@ local function recreateWord()
 		isAWordCircle:setFillColor(.2,.2,.2)
 	end
 end
+
+--insert a Tile into a linked list at the place indicated
+local function insertTile(movedTile,tileList,newPlace)
+	local i=1
+	if newPlace==1 then
+		linkedList = {next=tileList,tile=movedTile}
+	else
+		local currentNode = tileList
+		while currentNode~=nil and i<=numLetters do 
+			if i==newPlace-1 then
+				--FINISH 
+				-- attach the next node to the moved node
+				local temp = {next=currentNode.next,tile=movedTile}
+				-- make the moved node the next node
+				currentNode.next = temp
+			
+			end
+			currentNode = currentNode.next
+			i=i+1
+		end
+	end
+end
+
+--function to insert a moved tile
+--make a linked list of static/locked tiles
+-- make linked list of other tiles
+-- delete the moved tile
+--insert the moved tile
+--reinsert the locked tiles
+
+local function moveTile(movedTile,oldLoc,newLoc )
+	local lockedTiles = nil
+	local regularTiles = {}
+	local i = numLetters
+	local newPlace = newLoc
+	--check that the current tile isn't locked and that the new location isn't locked
+	if listOfLetters[oldLoc].wf_locked then
+		return
+	end
+	--make a linked list of the locked tiles
+	while i>=1 do
+		if listOfLetters[i].wf_locked then
+
+			lockedTiles = {next=lockedTiles,tile = listOfLetters[i]}
+			if i<newPlace then
+			
+				newLoc = newLoc - 1
+			end
+		else
+			--add the tile to the list of regular tiles
+			if listOfLetters[i]~=movedTile then
+				regularTiles = {next=regularTiles,tile=listOfLetters[i]}
+			end
+		end
+		i=i-1
+	end
+	--insert the moved tile into the list
+	insertTile(movedTile,regularTiles,newLoc)
+	--insert the Locked Tiles
+	local currentTile = lockedTiles
+	while currentTile~=nil do
+		insert(currentTile.tile,regularTiles,currentTile.tile.wf_place)
+		currentTile = currentTile.next
+	end
+	--redo the array of Letters
+	i = 1
+	currentTile = regularTiles
+	while i <= numLetters do
+		listOfLetters[i] = currentTile.tile
+		listOfLetters[i].wf_place = i
+		listOfLetters[i].x = tileStartTable[i]
+		i = i+1
+		currentTile = currentTile.next
+	end
+	-- redo the word
+	recreateWord()
+end
+
+
 --go through the list of tiles, renumber those that have changed 
 -- because movedTile moved
 -- change the x of those that have changed 
 -- newloc>old loc bug
 local function sortTiles(movedTile, oldLoc, newLoc)
 	local mt = movedTile
+	--check that the current tile isn't locked and that the new location isn't locked
+	if(listOfLetters[oldLoc].wf_locked) then
+		return
+	end
+	if listOfLetters[newLoc].wf_locked then
+		-- the location it is going to is locked, find it a new place
+		local found = false
+		if newLoc > 1 then
+			for i=newLoc-1, 1, -1 do
+				if not listOfLetters[i].wf_locked then
+					newLoc = i
+					found = true
+					
+				end
+				if found then break end
+			end
+		end
+		--move it somewhere after
+		if not found then
+			for i = newLoc+1, numLetters do
+				print("i="..i)
+				if not listOfLetters[i].wf_locked then
+					newLoc = i
+					found = true
+					
+				end
+				if found then break end
+			end
+			--nowhere to move it
+			if not found then
+				newLoc = oldLoc
+			end
+		end
+	end
+	--move the actual tile
 	if(newLoc > oldLoc) then
 		for i=oldLoc, newLoc-1 do
 			if i< numLetters then
@@ -151,6 +265,11 @@ local function createLetterTable(sceneGroup)
 		-- if a drag then have tile follow the drag
 		-- if a release then insert the tile where it goes
 		 function displayGroup:touch(event)
+		 	--don't move the tile if locked
+		 	if self.wf_locked ~=nil and self.wf_locked == true then
+		 		--native.showAlert("alert", "tile is locked")
+		 		return true
+		 	end
 			 if event.phase == "began" then
 				self:toFront()
 		        self.markX = self.x    -- store x location of object
@@ -159,8 +278,7 @@ local function createLetterTable(sceneGroup)
 		        self.origY = self.y
 				display.getCurrentStage():setFocus( event.target )
 		    elseif event.phase == "moved" then
-			
-		        local x = (event.x - event.xStart) + self.markX
+			    local x = (event.x - event.xStart) + self.markX
 		       -- local y = (event.y - event.yStart) + self.markY
 		        
 		        self.x, self.y = x, y    -- move object based on calculations above
@@ -170,7 +288,7 @@ local function createLetterTable(sceneGroup)
 		    	local oldLoc = self.wf_place
 		    	--self.wf_place = loc
 		    	--native.showAlert("alert","new location is "..loc.." old loc is "..oldLoc)
-		    	sortTiles(self,oldLoc,loc)
+		    	moveTile(self,oldLoc,loc)
 		    -- put the letter where it goes in the new order
 		    elseif event.phase == "cancelled" then
 		    	--put the object back where it started
@@ -180,7 +298,23 @@ local function createLetterTable(sceneGroup)
 		    
 		    return true
 		end
+
+		function displayGroup:tap(event)
+			--local tile = self
+			if self.wf_locked ==nil or self.wf_locked == false then
+				self.wf_locked = true
+				local mask = graphics.newMask( "graphics/redmask.png")
+				self:setMask(mask)
+			else
+				self.wf_locked = false
+				self:setMask(nil)
+				--tile:setFillColor(0,0,0,0)
+			end
+
+		end
+
 		displayGroup:addEventListener("touch",displayGroup)
+		displayGroup:addEventListener("tap",displayGroup)
 		sceneGroup:insert(displayGroup)
 		--letterInfo.locked = false
 		displayGroup.wf_locked=false
@@ -232,24 +366,31 @@ local function randomSort()
 			letterTable[newPlace] = listOfLetters[i]
 			letterTable[newPlace].wf_place = newPlace
 			letterTable[newPlace].x = tileStartTable[newPlace]	
+		else
+			usedLetters[i]=false
 		end
-		
+		print("i is "..i)
 	end
 	--randomize the rest of the letters
 	for i=1, numLetters do
 		--get a random number that hasn't been used
-		newPlace = math.random(max)
-		if not usedLetters[i]~=nil then
-			while usedLetters[newPlace]~=nil do
-				newPlace = math.random(max)
+		if not letterTable[i].wf_locked then
+			newPlace = math.random(max)
+			local count = 1
+			if usedLetters[newPlace] then
+				while usedLetters[newPlace] and count < 20 do
+					newPlace = math.random(max)
+					count = count+1
+					--print("random is "..newPlace)
+				end
+				
 			end
-			
+			--mark the random number used
+			usedLetters[newPlace]=true
+			letterTable[newPlace] = listOfLetters[i]
+			letterTable[newPlace].wf_place = newPlace
+			letterTable[newPlace].x = tileStartTable[newPlace]	
 		end
-		--mark the random number used
-		usedLetters[newPlace]=true
-		letterTable[newPlace] = listOfLetters[i]
-		letterTable[newPlace].wf_place = newPlace
-		letterTable[newPlace].x = tileStartTable[newPlace]	
 	
 	end
 	listOfLetters = letterTable
