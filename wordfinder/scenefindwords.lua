@@ -25,7 +25,7 @@ local currentWord
 
 local tileStartTable = {}
 local words = {}
-local autoCheck = false
+local autoCheck = true
 
 --calculate where each tile/letter should go based on its location in the "word"
 local function placeTile(tileInfo)
@@ -84,12 +84,13 @@ local function insertTile(movedTile,tileList,newPlace)
 	local linkedList
 	if newPlace<=1 then
 		linkedList = {next=tileList,tile=movedTile}
+		--print("adding a node at place "..newPlace)
 	else
 		linkedList = tileList
 		local currentNode = tileList
 		while currentNode~=nil and i<=numLetters do 
 			if i==newPlace-1 then
-
+				--print("adding a node at place "..newPlace)
 				-- attach the next node to the moved node
 				local temp = {next=currentNode.next,tile=movedTile}
 				-- make the moved node the next node
@@ -101,6 +102,41 @@ local function insertTile(movedTile,tileList,newPlace)
 		end
 	end
 	return linkedList
+end
+
+local function linkedListToArray(regularTiles)
+	local currentTile = regularTiles
+	local i = 1
+	while i <= numLetters and currentTile~=nil do
+		--print("i="..i.." letter="..currentTile.tile.wf_letter)
+		listOfLetters[i] = currentTile.tile
+		if listOfLetters[i]~=nil then
+			listOfLetters[i].wf_place = i
+			listOfLetters[i].x = tileStartTable[i]
+		end
+		i = i+1
+		currentTile = currentTile.next
+	end
+end
+
+local function printList(linkedList)
+	local i = 1
+	local currentTile = linkedList
+	local tile
+	if linkedList == nil then
+		print("the list is empty")
+		return
+	end
+	while currentTile~=nil do
+		tile = currentTile.tile
+		if tile~=nil then
+			print("at "..i.." the letter is "..tile.wf_letter)
+		else
+			print("at "..i.." the letter is nil")
+		end
+		currentTile = currentTile.next
+		i=i+1
+	end
 end
 
 --function to insert a moved tile
@@ -137,6 +173,7 @@ local function moveTile(movedTile,oldLoc,newLoc )
 		end
 		i=i-1
 	end
+
 	--insert the moved tile into the list
 	regularTiles = insertTile(movedTile,regularTiles,newPlace)
 	--insert the Locked Tiles
@@ -146,16 +183,7 @@ local function moveTile(movedTile,oldLoc,newLoc )
 		currentTile = currentTile.next
 	end
 	--redo the array of Letters
-	i = 1
-	currentTile = regularTiles
-	while i <= numLetters and currentTile~=nil do
-		--print("i="..i.." letter="..currentTile.tile.wf_letter)
-		listOfLetters[i] = currentTile.tile
-		listOfLetters[i].wf_place = i
-		listOfLetters[i].x = tileStartTable[i]
-		i = i+1
-		currentTile = currentTile.next
-	end
+	linkedListToArray(regularTiles)
 	-- redo the word
 	recreateWord()
 	print("word is "..letters)
@@ -289,6 +317,58 @@ local function loadWords()
 end
 
 --sort the tiles in a random order
+local function randomSort1()
+	--get random numbers
+	local lockedTiles = nil
+	local regularTiles = nil
+	local finalList = nil
+	local max = numLetters
+	local newPlace = math.random(max)
+	local i = numLetters
+	--print("in random sort i ="..i)
+	--make a list of the locked tiles and a list of regular tiles
+	while i>=1 do
+		
+		if listOfLetters[i].wf_locked then
+			lockedTiles = {tile = listOfLetters[i], next=lockedTiles}
+		else
+			regularTiles = {tile = listOfLetters[i], next=regularTiles}
+		--	print("regular i="..i)
+		end
+		i=i-1
+	end
+	--print("befor random")
+	printList(lockedTiles)
+	printList(regularTiles)
+	printList(regularTiles)
+	-- randomly insert the tiles
+	if(regularTiles~=nil) then
+		--print("regularTiles is not nil "..regularTiles.tile.wf_letter)
+		finalList = {tile = regularTiles.tile,next=nil}
+		local currentTile= regularTiles.next
+		local count = 1
+		while currentTile~=nil and count <= numLetters do
+			finalList = insertTile(currentTile.tile,finalList,math.random(count+1))
+			count = count + 1
+			currentTile = currentTile.next
+			printList(finalList)
+		end
+	end
+	--insert lockedTiles
+	while lockedTiles~= nil do
+		finalList = insertTile(lockedTiles.tile,finalList,lockedTiles.tile.wf_place)
+		lockedTiles = lockedTiles.next
+	end
+	--listOfLetters = letterTable
+	linkedListToArray(finalList)
+	recreateWord()
+	if autoCheck then
+		checkTilesForWords()
+	end
+end
+
+
+--sort the tiles in a random order
 local function randomSort()
 	--get random numbers
 	local letterTable = {}
@@ -310,8 +390,9 @@ local function randomSort()
 		
 	end
 	--randomize the rest of the letters
-	for i=1, numLetters do
+	for i=1, max do
 		--get a random number that hasn't been used
+		--TODO: fix this code
 		print("i is "..i)
 		if not letterTable[i].wf_locked then
 			newPlace = math.random(max)
@@ -398,7 +479,7 @@ function scene:create( event )
 		composer.gotoScene( "scenegetpicture" )
 	end
 	resetButton:addEventListener("tap",getNewTiles)
-	randomButton:addEventListener("tap",randomSort)
+	randomButton:addEventListener("tap",randomSort1)
 end
 
 
