@@ -104,6 +104,7 @@ local function insertTile(movedTile,tileList,newPlace)
 	return linkedList
 end
 
+--converts a linkled list of tiles back to the array
 local function linkedListToArray(regularTiles)
 	local currentTile = regularTiles
 	local i = 1
@@ -119,6 +120,7 @@ local function linkedListToArray(regularTiles)
 	end
 end
 
+--helper function to print out a linked list for debugging
 local function printList(linkedList)
 	local i = 1
 	local currentTile = linkedList
@@ -186,7 +188,7 @@ local function moveTile(movedTile,oldLoc,newLoc )
 	linkedListToArray(regularTiles)
 	-- redo the word
 	recreateWord()
-	print("word is "..letters)
+	--print("word is "..letters)
 end
 
 
