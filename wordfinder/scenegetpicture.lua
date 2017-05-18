@@ -16,6 +16,7 @@ local gameImageKey = "game_image"
 local alertTitle = "Alert"
 local alertMessageNoContent = "Please Type at least 2 letters"
 local fontSize1 = 30
+local photoWidth = 450
 local lettersTextBox
 local clicktoselectpic 
 
@@ -25,11 +26,11 @@ local function getGameScreenShot()
 	local function onPhotoComplete( event )
 	   if ( event.completed ) then
 	      local photo = event.target
-	      local s = display.contentHeight / photo.height
+	      local s = clicktoselectpic.contentWidth / photo.width 
 	      photo:scale( s,s )
 	      composer.gameImageKey = photo
 	      display.save(photo,gameSnapshotFilename)
-	      print( "photo w,h = " .. photo.width .. "," .. photo.height )
+	      print( "photo w,h = " .. photo.width .. "," .. photo.height .." scale="..s)
 	   end
 	end
  
@@ -86,7 +87,7 @@ function scene:create( event )
 	--load the "click to select image graphic"
 	clicktoselectpic = composer.gameImageKey
 	if(clicktoselectpic==nil) then
-		clicktoselectpic = display.newImageRect( selectPicImageURL,450, 600 )
+		clicktoselectpic = display.newImageRect( selectPicImageURL,photoWidth, 600 )
 	end
 	sceneGroup:insert(clicktoselectpic,0,10)
 	--scale the image to fit 1/3 of the screen
